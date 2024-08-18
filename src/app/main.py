@@ -1,3 +1,5 @@
+import json
+
 import boto3
 
 
@@ -12,7 +14,8 @@ class CloudwatchMonitor:
 
 def lambda_handler(event, context):
     try:
-        print(event)
+        body = json.loads(event["body"])
+        print(body)
         CloudwatchMonitor(boto3.client("cloudwatch")).send_success_to_cloudwatch()
 
         return {"statusCode": 200, "body": "Done"}
