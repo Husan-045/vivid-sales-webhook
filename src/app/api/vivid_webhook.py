@@ -14,7 +14,7 @@ router = APIRouter()
 
 
 @router.post("/webhook")
-def viagogo_webhook(
+def vivid_webhook(
         payload: Any = Body(None), cloudwatch_monitor=Depends(get_cloudwatch_monitor)
 ):
     print(payload)
@@ -112,13 +112,13 @@ def viagogo_webhook(
     csv_str = ','.join(str(x) for x in data)
 
     print(csv_str)
-    upload_to_s3_for_snowflake('viagogo_webhook', csv_str)
+    upload_to_s3_for_snowflake('vivid_webhook', csv_str)
 
     secrets = get_secret('prod/snowflake')['snowflake_credentials']
     cursor = snowflake_cursor(secrets)
     try:
         cursor.execute('''
-            insert into viagogo_webhook (
+            insert into vivid_webhook (
                 id,
                 topic,
                 action,

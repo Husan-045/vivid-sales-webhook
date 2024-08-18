@@ -9,4 +9,4 @@ RUN pip install -r requirements.txt --target "${LAMBDA_TASK_ROOT}" --no-cache-di
 COPY src/ ${LAMBDA_TASK_ROOT}/
 
 # Set the CMD to your handler (could also be done as a parameter override outside of the Dockerfile)
-CMD [ "app.api.viagogo_webhook.viagogo_webhook" ]
+CMD [ "app.api.vivid_webhook.vivid_webhook" ]
