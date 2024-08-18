@@ -40,7 +40,6 @@ resource "aws_lambda_permission" "apigw" {
 
 variable "api_stage_name" {
   type = string
-  default = var.environment
 }
 
 variable "api_domain" {
