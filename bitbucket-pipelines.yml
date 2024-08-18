@@ -16,6 +16,8 @@ pipelines:
             - docker
           oidc: true
           script:
+            - chmod +x deploy.sh
+            - chmod +x _run_terraform.sh
             - ENVIRONMENT=staging bash ./deploy.sh
     production:
       - step:
@@ -24,6 +26,8 @@ pipelines:
             - docker
           oidc: true
           script:
+            - chmod +x deploy.sh
+            - chmod +x _run_terraform.sh
             - ENVIRONMENT=prod bash ./deploy.sh
   custom:
     un-deploy-staging:
@@ -33,6 +37,8 @@ pipelines:
             - docker
           oidc: true
           script:
+            - chmod +x deploy.sh
+            - chmod +x _run_terraform.sh
             - ENVIRONMENT=staging bash ./deploy.sh -d
     un-deploy-production:
       - step:
@@ -41,4 +47,6 @@ pipelines:
             - docker
           oidc: true
           script:
+            - chmod +x deploy.sh
+            - chmod +x _run_terraform.sh
             - ENVIRONMENT=prod bash ./deploy.sh -d
