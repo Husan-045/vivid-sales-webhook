@@ -37,7 +37,7 @@ class CloudwatchMonitor:
 
 @router.post("/webhook")
 def vivid_webhook(
-        payload: Any = Body(None)
+        payload: Any = Body(None), e: Any = None
 ):
     print(payload)
 
