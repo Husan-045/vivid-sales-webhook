@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from app.cloudwatch_monitor import CloudwatchMonitor
+from app.aws.cloudwatch_monitor import CloudwatchMonitor
 
 
 def test_send_success_to_cloudwatch():
