@@ -1,4 +1,5 @@
 import json
+import urllib.parse
 import uuid
 from typing import Any
 
@@ -22,92 +23,44 @@ def vivid_webhook(
     print(type(payload))
 
     payload_body = payload.get('body')
-    account_id = payload.get('queryStringParameters').get('account_id')
-    exchange = payload.get('queryStringParameters').get('exchange')
+    parsed_body = urllib.parse.parse_qs(payload_body)
+    readable_body = {k: v[0] for k, v in parsed_body.items()}
 
-    print(account_id)
-    print(exchange)
-    print(payload_body)
-    print(type(payload_body))
-    json_data = json.loads(payload_body)
-    print(json_data)
-    print(type(json_data))
+    print(readable_body)
+    print(type(readable_body))
 
-    webhook_payload = Webhook(**json_data)
-    webhook_payload_embedded = json_data['_embedded']
-    venue_payload_embedded = json_data['_embedded']['venue']['_embedded']
-
-    print(webhook_payload)
-    print(webhook_payload_embedded)
-    print(venue_payload_embedded)
-
-    event_payload = EventEmbedded(**webhook_payload_embedded)
-    venue_embedded = VenueEmbedded(**venue_payload_embedded)
 
     id = str(uuid.uuid4().hex)
-    topic = webhook_payload.topic
-    action = webhook_payload.action
-    event_id = event_payload.event.id
-    event_name = event_payload.event.name
-    start_date = event_payload.event.start_date
-    on_sale_date = event_payload.event.on_sale_date
-    sale_id = event_payload.sale.id
-    sale_created_at = event_payload.sale.created_at
-    sale_section = event_payload.sale.seating.section
-    sale_row = event_payload.sale.seating.row
-    sale_seat_from = event_payload.sale.seating.seat_from
-    sale_seat_to = event_payload.sale.seating.seat_to
-    sale_amount = event_payload.sale.proceeds.amount
-    sale_currency_code = event_payload.sale.proceeds.currency_code
-    sale_number_of_tickets = event_payload.sale.number_of_tickets
-    sellerlisting_id = event_payload.seller_listing.id
-    external_id = event_payload.seller_listing.external_id
-    sellerlisting_created_at = event_payload.seller_listing.created_at
-    sellerlisting_number_of_tickets = event_payload.seller_listing.number_of_tickets
-    sellerlisting_section = event_payload.seller_listing.seating.section
-    sellerlisting_row = event_payload.seller_listing.seating.row
-    sellerlisting_seat_from = event_payload.seller_listing.seating.seat_from
-    sellerlisting_seat_to = event_payload.seller_listing.seating.seat_to
-    sellerlisting_amount = event_payload.seller_listing.ticket_price.amount
-    sellerlisting_currency_code = event_payload.seller_listing.ticket_price.currency_code
-    venue_id = event_payload.venue.id
-    venue_name = event_payload.venue.name
-    venue_city = event_payload.venue.city
-    venue_country = venue_embedded.country.code
-
+    order_id = readable_body.get('orderid')
+    quantity = readable_body.get('quantity')
+    ticket_id = readable_body.get('ticketid')
+    total = readable_body.get('total')
+    section = readable_body.get('section')
+    row = readable_body.get('row')
+    event = readable_body.get('event')
+    venue = readable_body.get('venue')
+    date = readable_body.get('date')
+    bar_codes_required = readable_body.get('barCodesRequired')
+    in_hand_date = readable_body.get('inHandDate')
+    instant_download = readable_body.get('instantDownload')
+    electronic = readable_body.get('electronic')
+    instant_flash_seats = readable_body.get('instantFlashSeats')
     data = (
         id,
-        topic,
-        action,
-        event_id,
-        event_name,
-        start_date,
-        on_sale_date,
-        sale_id,
-        sale_created_at,
-        sale_section,
-        sale_row,
-        sale_seat_from,
-        sale_seat_to,
-        sale_amount,
-        sale_currency_code,
-        sale_number_of_tickets,
-        sellerlisting_id,
-        external_id,
-        sellerlisting_created_at,
-        sellerlisting_number_of_tickets,
-        sellerlisting_section,
-        sellerlisting_row,
-        sellerlisting_seat_from,
-        sellerlisting_seat_to,
-        sellerlisting_amount,
-        sellerlisting_currency_code,
-        venue_id,
-        venue_name,
-        venue_city,
-        venue_country,
-        account_id,
-        exchange
+        order_id,
+        quantity,
+        ticket_id,
+        total,
+        section,
+        row,
+        event,
+        venue,
+        date,
+        bar_codes_required,
+        in_hand_date,
+        instant_download,
+        electronic,
+        instant_flash_seats
     )
 
     csv_str = ','.join(str(x) for x in data)
@@ -121,104 +74,53 @@ def vivid_webhook(
         cursor.execute('''
             insert into vivid_webhook (
                 id,
-                topic,
-                action,
-                event_id,
-                event_name,
-                start_date,
-                on_sale_date,
-                sale_id,
-                sale_created_at,
-                sale_section,
-                sale_row,
-                sale_seat_from,
-                sale_seat_to,
-                sale_amount,
-                sale_currency_code,
-                sale_number_of_tickets,
-                sellerlisting_id,
-                external_id,
-                sellerlisting_created_at,
-                sellerlisting_number_of_tickets,
-                sellerlisting_section,
-                sellerlisting_row,
-                sellerlisting_seat_from,
-                sellerlisting_seat_to,
-                sellerlisting_amount,
-                sellerlisting_currency_code,
-                venue_id,
-                venue_name,
-                venue_city,
-                venue_country,
-                account_id,
-                exchange
+                order_id,
+                quantity,
+                ticket_id,
+                total,
+                section,
+                "row",
+                event,
+                venue,
+                event_date,
+                bar_codes_required,
+                in_hand_date,
+                instant_download,
+                electronic,
+                instant_flash_seats
             ) values (
                 %(id)s,
-                %(topic)s,
-                %(action)s,
-                %(event_id)s,
-                %(event_name)s,
-                %(start_date)s,
-                %(on_sale_date)s,
-                %(sale_id)s,
-                %(sale_created_at)s,
-                %(sale_section)s,
-                %(sale_row)s,
-                %(sale_seat_from)s,
-                %(sale_seat_to)s,
-                %(sale_amount)s,
-                %(sale_currency_code)s,
-                %(sale_number_of_tickets)s,
-                %(sellerlisting_id)s,
-                %(external_id)s,
-                %(sellerlisting_created_at)s,
-                %(sellerlisting_number_of_tickets)s,
-                %(sellerlisting_section)s,
-                %(sellerlisting_row)s,
-                %(sellerlisting_seat_from)s,
-                %(sellerlisting_seat_to)s,
-                %(sellerlisting_amount)s,
-                %(sellerlisting_currency_code)s,
-                %(venue_id)s,
-                %(venue_name)s,
-                %(venue_city)s,
-                %(venue_country)s,
-                %(account_id)s,
-                %(exchange)s
+                %(order_id)s,
+                %(quantity)s,
+                %(ticket_id)s,
+                %(total)s,
+                %(section)s,
+                %(row)s,
+                %(event)s,
+                %(venue)s,
+                %(date)s,
+                %(bar_codes_required)s,
+                %(in_hand_date)s,
+                %(instant_download)s,
+                %(electronic)s,
+                %(instant_flash_seats)s
             )
         ''', {
             'id': id,
-            'topic': topic,
-            'action': action,
-            'event_id': event_id,
-            'event_name': event_name,
-            'start_date': start_date,
-            'on_sale_date': on_sale_date,
-            'sale_id': sale_id,
-            'sale_created_at': sale_created_at,
-            'sale_section': sale_section,
-            'sale_row': sale_row,
-            'sale_seat_from': sale_seat_from,
-            'sale_seat_to': sale_seat_to,
-            'sale_amount': sale_amount,
-            'sale_currency_code': sale_currency_code,
-            'sale_number_of_tickets': sale_number_of_tickets,
-            'sellerlisting_id': sellerlisting_id,
-            'external_id': external_id,
-            'sellerlisting_created_at': sellerlisting_created_at,
-            'sellerlisting_number_of_tickets': sellerlisting_number_of_tickets,
-            'sellerlisting_section': sellerlisting_section,
-            'sellerlisting_row': sellerlisting_row,
-            'sellerlisting_seat_from': sellerlisting_seat_from,
-            'sellerlisting_seat_to': sellerlisting_seat_to,
-            'sellerlisting_amount': sellerlisting_amount,
-            'sellerlisting_currency_code': sellerlisting_currency_code,
-            'venue_id': venue_id,
-            'venue_name': venue_name,
-            'venue_city': venue_city,
-            'venue_country': venue_country,
-            'account_id': account_id,
-            'exchange': exchange
+            'order_id': order_id,
+            'quantity': quantity,
+            'ticket_id': ticket_id,
+            'total': total,
+            'section': section,
+            'row': row,
+            'event': event,
+            'venue': venue,
+            'date': date,
+            'bar_codes_required': bar_codes_required,
+            'in_hand_date': in_hand_date,
+            'instant_download': instant_download,
+            'electronic': electronic,
+            'instant_flash_seats': instant_flash_seats
         })
 
         result = cursor.fetchone()
