@@ -30,7 +30,8 @@ resource "aws_iam_policy" "cloudwatch_put_metric_policy" {
     {
       "Action": [
         "cloudwatch:PutMetricData",
-        "s3:*"
+        "s3:*",
+        "secretsmanager:GetSecretValue"
       ],
       "Effect": "Allow",
       "Resource": "*"
