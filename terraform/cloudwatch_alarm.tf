@@ -5,25 +5,25 @@ variable "alarm_after_n_minutes_without_success" {
 
 resource "aws_cloudwatch_metric_alarm" "success_metric_alarm" {
   count = var.environment == "prod" ? 1 : 0
-  alarm_name          = "${var.app_ident}-alarm"
-  alarm_description   = "Alarm when ${var.app_ident} does not successfully run often enough"
-  comparison_operator = "LessThanOrEqualToThreshold"
-  evaluation_periods  = var.alarm_after_n_minutes_without_success  # 1 evaluation period per minute
-  datapoints_to_alarm = var.alarm_after_n_minutes_without_success  # Alarm if all of the evaluation periods have a sum of 0
+  alarm_name          = "${var.app_ident}-failure"
+  alarm_description   = "Alarm when ${var.app_ident} is failing"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 5
+  datapoints_to_alarm = 1 # Alarm if we saw at least n failures in the evaluation periods
   threshold           = 0
-  alarm_actions       = [data.aws_sns_topic.sns_topic.arn]
-  treat_missing_data  = "breaching"
+  alarm_actions       = [data.aws_sns_topic.sns_topic.arn]  # Assuming you have an SNS topic for alerts
+  treat_missing_data  = "notBreaching"
 
   metric_query {
-    id = "e1"
+    id = "e2"
     metric {
-      metric_name = "success"
-      namespace   = var.cloudwatch_namespace
+      namespace   = "AWS/Lambda"
+      metric_name = "Errors"
       period      = 60  # Set the period to 1 minute (60 seconds)
       stat        = "Sum"
       unit        = "Count"
       dimensions = {
-        environment = var.environment
+        "FunctionName" = aws_lambda_function.lambda_function.function_name
       }
     }
     return_data = true
