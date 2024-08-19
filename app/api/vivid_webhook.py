@@ -8,7 +8,6 @@ from fastapi import APIRouter, Body, Depends
 from fastapi.responses import JSONResponse
 from snowflake.connector.errors import ProgrammingError
 
-from app.aws.cloudwatch_monitor import get_cloudwatch_monitor
 from app.service.s3_handler import upload_to_s3_for_snowflake
 from app.service.secrets import get_secret
 from app.service.snowflake import snowflake_cursor, get_description
