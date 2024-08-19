@@ -5,7 +5,6 @@ from typing import Any
 
 import boto3
 from fastapi import APIRouter, Body
-from fastapi.responses import JSONResponse
 from snowflake.connector.errors import ProgrammingError
 
 from app.service.s3_handler import upload_to_s3_for_snowflake
@@ -52,7 +51,9 @@ def vivid_webhook(
     _store_into_snowflake(id, readable_body)
     CloudwatchMonitor().send_success_to_cloudwatch()
     print("success")
-    return JSONResponse(status_code=200, content={"message": "Webhook received successfully"})
+    return {"statusCode": 200, "headers": {"Content-Type": "application/json"},
+            "body": "{\"message\": \"Webhook received successfully\"}"
+            }
 
 
 def _store_in_s3(id, readable_body):
