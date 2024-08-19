@@ -1,7 +1,9 @@
+import os
 import urllib.parse
 import uuid
 from typing import Any
 
+import boto3
 from fastapi import APIRouter, Body, Depends
 from fastapi.responses import JSONResponse
 from snowflake.connector.errors import ProgrammingError
@@ -12,6 +14,26 @@ from app.service.secrets import get_secret
 from app.service.snowflake import snowflake_cursor, get_description
 
 router = APIRouter()
+
+
+class CloudwatchMonitor:
+    def __init__(self, cloudwatch=boto3.client("cloudwatch")):
+        self.cloudwatch = cloudwatch
+
+    def send_success_to_cloudwatch(self):
+        self.cloudwatch.put_metric_data(
+            Namespace=os.environ["CLOUDWATCH_NAMESPACE"],
+            MetricData=[
+                {
+                    "MetricName": "Success",
+                    "Value": 1,
+                    "Unit": "Count",
+                    "Dimensions": [
+                        {"Name": "Environment", "Value": os.environ["ENVIRONMENT"]},
+                    ],
+                }
+            ],
+        )
 
 
 @router.post("/webhook")
@@ -29,7 +51,7 @@ def vivid_webhook(
     id = str(uuid.uuid4().hex)
     _store_in_s3(id, readable_body)
     _store_into_snowflake(id, readable_body)
-    cloudwatch_monitor.send_success_to_cloudwatch()
+    CloudwatchMonitor().send_success_to_cloudwatch()
     print("success")
     return JSONResponse(status_code=200, content={"message": "Webhook received successfully"})
 
