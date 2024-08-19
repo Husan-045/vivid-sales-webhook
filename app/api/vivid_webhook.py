@@ -1,13 +1,12 @@
-import json
 import urllib.parse
 import uuid
 from typing import Any
 
 from fastapi import APIRouter, Body, Depends
+from fastapi.responses import JSONResponse
 from snowflake.connector.errors import ProgrammingError
 
 from app.aws.cloudwatch_monitor import get_cloudwatch_monitor
-from app.models.models import *
 from app.service.s3_handler import upload_to_s3_for_snowflake
 from app.service.secrets import get_secret
 from app.service.snowflake import snowflake_cursor, get_description
@@ -20,17 +19,22 @@ def vivid_webhook(
         payload: Any = Body(None), cloudwatch_monitor=Depends(get_cloudwatch_monitor)
 ):
     print(payload)
-    print(type(payload))
 
     payload_body = payload.get('body')
     parsed_body = urllib.parse.parse_qs(payload_body)
     readable_body = {k: v[0] for k, v in parsed_body.items()}
 
     print(readable_body)
-    print(type(readable_body))
-
 
     id = str(uuid.uuid4().hex)
+    _store_in_s3(id, readable_body)
+    _store_into_snowflake(id, readable_body)
+    cloudwatch_monitor.send_success_to_cloudwatch()
+    print("success")
+    return JSONResponse(status_code=200, content={"message": "Webhook received successfully"})
+
+
+def _store_in_s3(id, readable_body):
     order_id = readable_body.get('orderid')
     quantity = readable_body.get('quantity')
     ticket_id = readable_body.get('ticketid')
@@ -62,12 +66,12 @@ def vivid_webhook(
         electronic,
         instant_flash_seats
     )
-
     csv_str = ','.join(str(x) for x in data)
-
     print(csv_str)
     upload_to_s3_for_snowflake('vivid_webhook', csv_str)
 
+
+def _store_into_snowflake(id, readable_body):
     secrets = get_secret('prod/snowflake')['snowflake_credentials']
     cursor = snowflake_cursor(secrets)
     try:
@@ -107,20 +111,20 @@ def vivid_webhook(
             )
         ''', {
             'id': id,
-            'order_id': order_id,
-            'quantity': quantity,
-            'ticket_id': ticket_id,
-            'total': total,
-            'section': section,
-            'row': row,
-            'event': event,
-            'venue': venue,
-            'date': date,
-            'bar_codes_required': bar_codes_required,
-            'in_hand_date': in_hand_date,
-            'instant_download': instant_download,
-            'electronic': electronic,
-            'instant_flash_seats': instant_flash_seats
+            'order_id': readable_body.get('orderid'),
+            'quantity': readable_body.get('quantity'),
+            'ticket_id': readable_body.get('ticketid'),
+            'total': readable_body.get('total'),
+            'section': readable_body.get('section'),
+            'row': readable_body.get('row'),
+            'event': readable_body.get('event'),
+            'venue': readable_body.get('venue'),
+            'date': readable_body.get('date'),
+            'bar_codes_required': readable_body.get('barCodesRequired'),
+            'in_hand_date': readable_body.get('inHandDate'),
+            'instant_download': readable_body.get('instantDownload'),
+            'electronic': readable_body.get('electronic'),
+            'instant_flash_seats': readable_body.get('instantFlashSeats')
         })
 
         result = cursor.fetchone()
@@ -129,5 +133,3 @@ def vivid_webhook(
         raise e
     finally:
         cursor.close()
-
-    # cloudwatch_monitor.send_success_to_cloudwatch()
