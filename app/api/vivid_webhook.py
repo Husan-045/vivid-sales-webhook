@@ -4,7 +4,7 @@ import uuid
 from typing import Any
 
 import boto3
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
 from snowflake.connector.errors import ProgrammingError
 
@@ -37,7 +37,7 @@ class CloudwatchMonitor:
 
 @router.post("/webhook")
 def vivid_webhook(
-        payload: Any = Body(None), cloudwatch_monitor=Depends(get_cloudwatch_monitor)
+        payload: Any = Body(None)
 ):
     print(payload)
 
