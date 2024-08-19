@@ -25,9 +25,9 @@ resource "aws_lambda_function" "lambda_function" {
 
   environment {
     variables = {
-      ENVIRONMENT                    = var.environment,
-      APP_IDENT                      = var.app_ident,
-      CLOUDWATCH_MONITOR_NAMESPACE   = var.cloudwatch_namespace
+      ENVIRONMENT          = var.environment,
+      APP_IDENT            = var.app_ident,
+      CLOUDWATCH_NAMESPACE = var.cloudwatch_namespace
     }
   }
 }
