@@ -40,8 +40,8 @@ def vivid_webhook(
 ):
     print(payload)
 
-    payload_body = payload.get('body')
-    parsed_body = urllib.parse.parse_qs(payload_body)
+    parsed_body = urllib.parse.parse_qs(payload)
+    print(parsed_body)
     readable_body = {k: v[0] for k, v in parsed_body.items()}
 
     print(readable_body)

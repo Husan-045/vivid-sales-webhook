@@ -8,28 +8,19 @@ variable "code_hash_file" {
 }
 
 resource "null_resource" "push_image" {
+  depends_on = [null_resource.login_to_ecr]
   triggers = {
     code_hash = filemd5(var.code_hash_file)
     ecr_repo = aws_ecr_repository.ecr_repository.repository_url
-    force = 3
+    force = 2
   }
 
-  # NOTE: if you are doing the deploy from a mac computer with an ARM processor you will need to:
-  #       - change: docker build  ->  docker buildx build
-  #       - add: --platform linux/amd64
   provisioner "local-exec" {
     command = <<EOF
     set -e # Exit immediately if a command exits with a non-zero status.
     cd ..
 
     echo "Running docker build: ${path.cwd}"
-
-    echo "Log into AWS ECR Container Repository"
-    aws ecr get-login-password \
-      --region ${data.aws_region.current.name} | \
-      docker login \
-        --username AWS \
-        --password-stdin ${aws_ecr_repository.ecr_repository.repository_url}
 
     # For ARM Mac: docker buildx build --platform linux/amd64 \
     # For Non-ARM (bitbucket,windows laptops): docker build \
