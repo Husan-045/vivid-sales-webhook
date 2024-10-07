@@ -98,7 +98,7 @@ def _store_into_snowflake(id, readable_body):
     cursor = snowflake_cursor(secrets)
     try:
         cursor.execute('''
-            insert into vivid_webhook (
+            insert into vivid_sales_webhook (
                 id,
                 order_id,
                 quantity,
@@ -113,7 +113,8 @@ def _store_into_snowflake(id, readable_body):
                 in_hand_date,
                 instant_download,
                 electronic,
-                instant_flash_seats
+                instant_flash_seats,
+                created_at
             ) values (
                 %(id)s,
                 %(order_id)s,
@@ -129,7 +130,8 @@ def _store_into_snowflake(id, readable_body):
                 %(in_hand_date)s,
                 %(instant_download)s,
                 %(electronic)s,
-                %(instant_flash_seats)s
+                %(instant_flash_seats)s,
+                CURRENT_TIMESTAMP()
             )
         ''', {
             'id': id,
