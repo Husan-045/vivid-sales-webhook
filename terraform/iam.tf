@@ -88,6 +88,13 @@ resource "aws_iam_policy" "dynamodb_access_policy" {
           "dynamodb:*"
         ],
         Resource = "arn:aws:dynamodb:*:*:table/*"
+      },
+      {
+        Effect   = "Allow",
+        Action   = [
+          "s3:*"
+        ],
+        Resource = "*"
       }
     ]
   })
