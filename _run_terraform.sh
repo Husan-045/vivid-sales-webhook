@@ -45,9 +45,5 @@ if [ "$FLAG_DESTROY" = true ] ; then
     terraform destroy -auto-approve
 else
     echo "Creating resources..."
-    # First apply only the SES domain identity and DKIM resources
-    terraform apply -target=aws_ses_domain_identity.verified_domain -target=aws_ses_domain_dkim.domain_dkim -auto-approve
-
-    # Then apply the rest of the resources
     terraform apply -auto-approve
 fi
