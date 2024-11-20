@@ -41,7 +41,7 @@ class CloudwatchMonitor:
 def vivid_webhook(
         request: Request, e: Any = None
 ):
-    print("request", request)
+    print("request", request.json())
     print("account:", e)
 
     # parsed_body = urllib.parse.parse_qs(payload.decode('utf-8'))
