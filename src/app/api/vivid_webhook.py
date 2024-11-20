@@ -1,10 +1,13 @@
 import os
+import traceback
 import urllib.parse
 import uuid
 from typing import Any
 
 import boto3
-from fastapi import APIRouter, Body
+import requests
+from boto3.dynamodb.conditions import Key
+from fastapi import APIRouter, Request
 from snowflake.connector.errors import ProgrammingError
 
 from app.service.s3_handler import upload_to_s3_for_snowflake
@@ -36,20 +39,22 @@ class CloudwatchMonitor:
 
 @router.post("/webhook")
 def vivid_webhook(
-        payload: Any = Body(None), e: Any = None
+        request: Request, e: Any = None
 ):
-    print(payload)
+    print("request", request)
+    print("account:", e)
 
-    parsed_body = urllib.parse.parse_qs(payload.decode('utf-8'))
-    print(parsed_body)
-    readable_body = {k: v[0] for k, v in parsed_body.items()}
-
-    print(readable_body)
-
-    id = str(uuid.uuid4().hex)
-    _store_in_s3(id, readable_body)
-    _store_into_snowflake(id, readable_body)
-    CloudwatchMonitor().send_success_to_cloudwatch()
+    # parsed_body = urllib.parse.parse_qs(payload.decode('utf-8'))
+    # print(parsed_body)
+    # readable_body = {k: v[0] for k, v in parsed_body.items()}
+    #
+    # print(readable_body)
+    #
+    # id = str(uuid.uuid4().hex)
+    # _store_in_s3(id, readable_body)
+    # _store_into_snowflake(id, readable_body)
+    # confirm_sale(e, readable_body.get('orderid'))
+    # CloudwatchMonitor().send_success_to_cloudwatch()
     print("success")
     return {"statusCode": 200, "headers": {"Content-Type": "application/json"},
             "body": "{\"message\": \"Webhook received successfully\"}"
@@ -157,3 +162,42 @@ def _store_into_snowflake(id, readable_body):
         raise e
     finally:
         cursor.close()
+
+
+def confirm_sale(account_id, order_id):
+    account = get_account(account_id)
+    if account:
+        token = account.get('vivid_account_access_token')
+        url = "https://brokers.vividseats.com/webservices/v1/confirmOrder"
+
+        headers = {
+            "Accept": "application/xml",
+            "Content-Type": "*/*",
+        }
+
+        data = {
+            "apiToken": token,
+            "orderId": order_id,
+            "shipNow": False
+        }
+        try:
+            print("CONFIRMING", data)
+            response = requests.post(url, headers=headers, json=data)
+            response.raise_for_status()
+        except Exception as e:
+            print(f"Error confirming order: {e}")
+            traceback.print_exc()
+
+
+def get_account(account_id):
+    dynamodb_resource = boto3.resource("dynamodb")
+    table = dynamodb_resource.Table("shadows-catalog-prod")
+    response = table.query(
+        KeyConditionExpression=Key("id").eq("vivid_account")
+                               & Key("sub_id").eq(f"vivid_account_id#{account_id}/")
+    )
+    items = response.get("Items", [])
+    return items[0] if items else None
+
+
+print(get_account("VS1shadows@gmail.com"))
