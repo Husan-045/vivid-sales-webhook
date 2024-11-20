@@ -38,10 +38,11 @@ class CloudwatchMonitor:
 
 
 @router.post("/webhook")
-def vivid_webhook(
+async def vivid_webhook(
         request: Request, e: Any = None
 ):
-    print("request", request.json())
+    json = await request.json()
+    print("request", json)
     print("account:", e)
 
     # parsed_body = urllib.parse.parse_qs(payload.decode('utf-8'))
