@@ -17,6 +17,7 @@ load_dotenv()
 
 auth_excluded_routes = {
     "/healthcheck": "GET",
+    "/webhook": "POST",
     "/docs": "GET",
     "/openapi.json": "GET",
     "/users/bootstrap": "GET",

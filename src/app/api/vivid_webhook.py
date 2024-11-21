@@ -41,9 +41,9 @@ class CloudwatchMonitor:
 async def vivid_webhook(
         request: Request, e: Any = None
 ):
+    print("account:", e)
     json = await request.json()
     print("request", json)
-    print("account:", e)
 
     # parsed_body = urllib.parse.parse_qs(payload.decode('utf-8'))
     # print(parsed_body)
