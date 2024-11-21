@@ -45,6 +45,30 @@ async def vivid_webhook(
     print("account:", vivid_account)
     body = await request.body()
     print("Raw request body:", body)
+    parsed_body = urllib.parse.parse_qs(body.decode('utf-8'))
+    print(parsed_body)
+    readable_body = {k: v[0] for k, v in parsed_body.items()}
+
+    print(readable_body)
+
+    id = str(uuid.uuid4().hex)
+    print("storing in s3")
+    _store_in_s3(id, readable_body)
+    print("storing in snowflake")
+    _store_into_snowflake(id, readable_body)
+    print("confirm sale")
+    confirm_sale(vivid_account, readable_body.get('orderid'))
+    print("redirecting to ticket_suit")
+    await redirect_to_ticket_suit(body)
+    print("monitor")
+    CloudwatchMonitor().send_success_to_cloudwatch()
+    print("success")
+    return {"statusCode": 200, "headers": {"Content-Type": "application/json"},
+            "body": "{\"message\": \"Webhook received successfully\"}"
+            }
+
+
+async def redirect_to_ticket_suit(body):
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(
@@ -57,25 +81,13 @@ async def vivid_webhook(
             response.raise_for_status()  # Raise an error for non-2xx responses
         except httpx.RequestError as e:
             print(f"An error occurred while sending data to the target API: {e}")
+            raise
         except httpx.HTTPStatusError as e:
             print(f"Target API returned an error: {e.response.status_code}, {e.response.text}")
-
-
-    parsed_body = urllib.parse.parse_qs(body.decode('utf-8'))
-    print(parsed_body)
-    readable_body = {k: v[0] for k, v in parsed_body.items()}
-
-    print(readable_body)
-
-    id = str(uuid.uuid4().hex)
-    _store_in_s3(id, readable_body)
-    _store_into_snowflake(id, readable_body)
-    confirm_sale(e, readable_body.get('orderid'))
-    CloudwatchMonitor().send_success_to_cloudwatch()
-    print("success")
-    return {"statusCode": 200, "headers": {"Content-Type": "application/json"},
-            "body": "{\"message\": \"Webhook received successfully\"}"
-            }
+            raise
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+            raise
 
 
 def _store_in_s3(id, readable_body):
