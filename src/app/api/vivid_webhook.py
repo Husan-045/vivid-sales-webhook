@@ -1,10 +1,13 @@
+import datetime
 import os
 import traceback
 import urllib.parse
 import uuid
-from typing import Any
-import httpx
+from urllib.parse import urlparse
+
 import boto3
+import httpx
+import psycopg2
 import requests
 from boto3.dynamodb.conditions import Key
 from fastapi import APIRouter, Request
@@ -52,10 +55,14 @@ async def vivid_webhook(
     print(readable_body)
 
     id = str(uuid.uuid4().hex)
+    print("storing in postgres")
+    _upload_into_postgres(readable_body, vivid_account)
+    print("confirm sale")
+    confirm_sale(vivid_account, readable_body.get('orderid'))
     print("storing in s3")
     _store_in_s3(id, readable_body)
     print("storing in snowflake")
-    _store_into_snowflake(id, readable_body)
+    _store_into_snowflake(id, readable_body, vivid_account)
     print("confirm sale")
     confirm_sale(vivid_account, readable_body.get('orderid'))
     print("redirecting to ticket_suit")
@@ -127,7 +134,7 @@ def _store_in_s3(id, readable_body):
     upload_to_s3_for_snowflake('vivid_webhook', csv_str)
 
 
-def _store_into_snowflake(id, readable_body):
+def _store_into_snowflake(id, readable_body, vivid_account):
     secrets = get_secret('prod/snowflake')['snowflake_credentials']
     cursor = snowflake_cursor(secrets)
     try:
@@ -148,7 +155,8 @@ def _store_into_snowflake(id, readable_body):
                 instant_download,
                 electronic,
                 instant_flash_seats,
-                created_at
+                created_at,
+                vivid_account 
             ) values (
                 %(id)s,
                 %(order_id)s,
@@ -165,7 +173,8 @@ def _store_into_snowflake(id, readable_body):
                 %(instant_download)s,
                 %(electronic)s,
                 %(instant_flash_seats)s,
-                CURRENT_TIMESTAMP()
+                CURRENT_TIMESTAMP(),
+                %(vivid_account)s
             )
         ''', {
             'id': id,
@@ -182,7 +191,8 @@ def _store_into_snowflake(id, readable_body):
             'in_hand_date': readable_body.get('inHandDate'),
             'instant_download': readable_body.get('instantDownload'),
             'electronic': readable_body.get('electronic'),
-            'instant_flash_seats': readable_body.get('instantFlashSeats')
+            'instant_flash_seats': readable_body.get('instantFlashSeats'),
+            'vivid_account': vivid_account
         })
 
         result = cursor.fetchone()
@@ -229,4 +239,40 @@ def get_account(account_id):
     return items[0] if items else None
 
 
-print(get_account("VS1shadows@gmail.com"))
+def _upload_into_postgres(sale, vivid_account):
+    secrets = get_secret(f"{os.getenv('ENVIRONMENT')}/postgres/buylist/admin")
+    print(secrets)
+    conn = psycopg2.connect(
+        dbname=secrets['dbname'],
+        user=secrets['user'],
+        password=secrets['password'],
+        host=secrets['host'],
+        port=secrets['port']
+    )
+
+    sale_tuple = (
+        uuid.uuid4(), sale.get('orderid'), sale.get('ticketid'), vivid_account, sale.get('section'), sale.get('row'),
+        sale.get('notes'), sale.get('quantity'), sale.get('total'), sale.get('event'), sale.get('date'),
+        str(datetime.datetime.utcnow()), sale.get('venue'), 'UNCONFIRMED', sale.get('electronic'),
+        sale.get('barCodesRequired'), sale.get('instantFlashSeats'), str(datetime.datetime.utcnow()))
+    print("Uploading", sale)
+    try:
+        with conn.cursor() as cursor:
+            insert_query = """
+                    INSERT INTO vivid_sales (
+                        id, order_id, broker_ticket_id, vivid_account_id, section, "row", notes, quantity, cost, event,
+                        event_date, order_date, venue, status, electronic_delivery,  bar_codes_required,
+                        instant_flash_seats, collection_session_ts
+                    ) VALUES %s
+                    ON CONFLICT (order_id)
+                    DO NOTHING
+                """
+            cursor.execute(insert_query, sale_tuple)
+        conn.commit()
+    except Exception as e:
+        traceback.print_exc()
+        print(f"Error: {e}")
+        raise
+    finally:
+        conn.close()
+    pass

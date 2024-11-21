@@ -6,4 +6,6 @@ def get_secret(name):
     response = client.get_secret_value(SecretId=name)
     
     secret = response['SecretString']
-    return json.loads(secret)
+    if secret.startswith("{"):
+        return json.loads(secret)
+    return secret

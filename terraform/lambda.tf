@@ -9,9 +9,6 @@ variable "app_memory" {
 }
 
 
-
-
-
 variable "REDIS_ADDRESS" {
   default = ""
 }
@@ -20,6 +17,9 @@ variable "REDIS_PORT" {
 }
 
 
+variable "postgres_url" {
+  default = ""
+}
 resource "aws_lambda_function" "lambda_function" {
   depends_on = [null_resource.push_image]
   function_name = var.app_ident
@@ -37,10 +37,11 @@ resource "aws_lambda_function" "lambda_function" {
 
   environment {
     variables = {
-      ENVIRONMENT              = var.environment,
-      CLOUDWATCH_NAMESPACE     = var.cloudwatch_namespace,
-      REDIS_ADDRESS            = var.REDIS_ADDRESS,
-      REDIS_PORT               = var.REDIS_PORT,
+      ENVIRONMENT          = var.environment,
+      CLOUDWATCH_NAMESPACE = var.cloudwatch_namespace,
+      REDIS_ADDRESS        = var.REDIS_ADDRESS,
+      POSTGRES_URL         = var.postgres_url,
+      REDIS_PORT           = var.REDIS_PORT,
     }
   }
 
