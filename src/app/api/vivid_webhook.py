@@ -39,9 +39,10 @@ class CloudwatchMonitor:
 
 @router.post("/webhook")
 async def vivid_webhook(
-        request: Request, e: Any = None
+        request: Request
 ):
-    print("account:", e)
+    vivid_account = request.query_params.get("vivid_account")
+    print("account:", vivid_account)
     body = await request.body()
     print("Raw request body:", body)
     async with httpx.AsyncClient() as client:
@@ -60,17 +61,17 @@ async def vivid_webhook(
             print(f"Target API returned an error: {e.response.status_code}, {e.response.text}")
 
 
-    # parsed_body = urllib.parse.parse_qs(payload.decode('utf-8'))
-    # print(parsed_body)
-    # readable_body = {k: v[0] for k, v in parsed_body.items()}
-    #
-    # print(readable_body)
-    #
-    # id = str(uuid.uuid4().hex)
-    # _store_in_s3(id, readable_body)
-    # _store_into_snowflake(id, readable_body)
-    # confirm_sale(e, readable_body.get('orderid'))
-    # CloudwatchMonitor().send_success_to_cloudwatch()
+    parsed_body = urllib.parse.parse_qs(body.decode('utf-8'))
+    print(parsed_body)
+    readable_body = {k: v[0] for k, v in parsed_body.items()}
+
+    print(readable_body)
+
+    id = str(uuid.uuid4().hex)
+    _store_in_s3(id, readable_body)
+    _store_into_snowflake(id, readable_body)
+    confirm_sale(e, readable_body.get('orderid'))
+    CloudwatchMonitor().send_success_to_cloudwatch()
     print("success")
     return {"statusCode": 200, "headers": {"Content-Type": "application/json"},
             "body": "{\"message\": \"Webhook received successfully\"}"
