@@ -3,7 +3,7 @@ import traceback
 import urllib.parse
 import uuid
 from typing import Any
-
+import httpx
 import boto3
 import requests
 from boto3.dynamodb.conditions import Key
@@ -44,6 +44,21 @@ async def vivid_webhook(
     print("account:", e)
     body = await request.body()
     print("Raw request body:", body)
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                "https://stubsai-api-live.azurewebsites.net/vividseats/order/9ee06c1d-b4dc-4b52-a501-eeba5de55bb5",
+                content=body,  # Send the raw body
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded",  # Set the correct Content-Type
+                }
+            )
+            response.raise_for_status()  # Raise an error for non-2xx responses
+        except httpx.RequestError as e:
+            print(f"An error occurred while sending data to the target API: {e}")
+        except httpx.HTTPStatusError as e:
+            print(f"Target API returned an error: {e.response.status_code}, {e.response.text}")
+
 
     # parsed_body = urllib.parse.parse_qs(payload.decode('utf-8'))
     # print(parsed_body)
