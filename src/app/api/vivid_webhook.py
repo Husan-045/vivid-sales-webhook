@@ -42,8 +42,8 @@ async def vivid_webhook(
         request: Request, e: Any = None
 ):
     print("account:", e)
-    json = await request.json()
-    print("request", json)
+    body = await request.body()
+    print("Raw request body:", body)
 
     # parsed_body = urllib.parse.parse_qs(payload.decode('utf-8'))
     # print(parsed_body)
