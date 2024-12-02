@@ -3,7 +3,6 @@ import os
 import traceback
 import urllib.parse
 import uuid
-from urllib.parse import urlparse
 
 import boto3
 import httpx
@@ -217,11 +216,11 @@ def confirm_sale(account_id, order_id):
         data = {
             "apiToken": token,
             "orderId": order_id,
-            "shipNow": False
-        }
+            "shipNow": False,
+            "seatNumbers": "1"}
         try:
             print("CONFIRMING", data)
-            response = requests.post(url, headers=headers, json=data)
+            response = requests.post(url, headers=headers, data=data)
             response.raise_for_status()
         except Exception as e:
             print(f"Error confirming order: {e}")
@@ -251,9 +250,9 @@ def _upload_into_postgres(sale, vivid_account):
     )
 
     sale_tuple = (
-        str(uuid.uuid4()), sale.get('orderid'), sale.get('ticketid'), vivid_account, sale.get('section'), sale.get('row'),
-        sale.get('notes'), sale.get('quantity'), sale.get('total'), sale.get('event'), sale.get('date'),
-        str(datetime.datetime.utcnow()), sale.get('venue'), 'UNCONFIRMED', sale.get('electronic'),
+        str(uuid.uuid4()), sale.get('orderid'), sale.get('ticketid'), vivid_account, sale.get('section'),
+        sale.get('row'), sale.get('notes'), sale.get('quantity'), sale.get('total'), sale.get('event'),
+        sale.get('date'), str(datetime.datetime.utcnow()), sale.get('venue'), 'UNCONFIRMED', sale.get('electronic'),
         sale.get('barCodesRequired'), sale.get('instantFlashSeats'), str(datetime.datetime.utcnow()))
     print("Uploading", sale)
     try:
