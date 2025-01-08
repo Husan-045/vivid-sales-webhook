@@ -282,6 +282,7 @@ def _upload_into_postgres(sale, vivid_account):
     pass
 
 def _add_event_url_to_sale(sale):
+    conn = None
     try:
         secrets = get_secret(f"{os.getenv('ENVIRONMENT')}/postgres/shadows-realtime-catalog-1-ro/dbadmin")
         print(secrets)
@@ -303,6 +304,8 @@ def _add_event_url_to_sale(sale):
         print("Exception:", str(e))
         traceback.print_exc()
         sale["event_url"] = ""
+    finally:
+        conn.close() if conn else ''
 
 def _get_event_url(
             location_id: str,
