@@ -6,6 +6,7 @@ from typing import Type, Tuple, Union
 import boto3
 
 sqs_client = boto3.client('sqs')
+dynamodb_resource = boto3.resource('dynamodb')
 queue_url = os.getenv('SQS_CSV_QUEUE_URL')
 
 def retry_on_exception(

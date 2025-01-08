@@ -12,10 +12,14 @@ import requests
 from boto3.dynamodb.conditions import Key
 from fastapi import APIRouter, Request
 from snowflake.connector.errors import ProgrammingError
+from ticketboat_aws_utils.dynamodb_table import DynamodbTable
 
 from app.service.s3_handler import upload_to_s3_for_snowflake
 from app.service.secrets import get_secret
 from app.service.snowflake import snowflake_cursor, get_description
+from app.utils import dynamodb_resource
+
+
 
 router = APIRouter()
 
@@ -240,6 +244,7 @@ def get_account(account_id):
 
 
 def _upload_into_postgres(sale, vivid_account):
+    _add_event_url_to_sale(sale)
     secrets = get_secret(f"{os.getenv('ENVIRONMENT')}/postgres/buylist/admin")
     print(secrets)
     conn = psycopg2.connect(
@@ -254,7 +259,7 @@ def _upload_into_postgres(sale, vivid_account):
         str(uuid.uuid4()), sale.get('orderid'), sale.get('ticketid'), vivid_account, sale.get('section'), sale.get('row'),
         sale.get('notes'), sale.get('quantity'), sale.get('total'), sale.get('event'), sale.get('date'),
         str(datetime.datetime.utcnow()), sale.get('venue'), 'UNCONFIRMED', sale.get('electronic'),
-        sale.get('barCodesRequired'), sale.get('instantFlashSeats'), str(datetime.datetime.utcnow()))
+        sale.get('barCodesRequired'), sale.get('instantFlashSeats'), str(datetime.datetime.utcnow()), sale.get("event_url"))
     print("Uploading", sale)
     try:
         with conn.cursor() as cursor:
@@ -262,7 +267,7 @@ def _upload_into_postgres(sale, vivid_account):
                     INSERT INTO vivid_sales (
                         id, order_id, broker_ticket_id, vivid_account_id, section, "row", notes, quantity, cost, event,
                         event_date, order_date, venue, status, electronic_delivery,  bar_codes_required,
-                        instant_flash_seats, collection_session_ts
+                        instant_flash_seats, collection_session_ts, event_url
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (order_id)
                     DO NOTHING
@@ -276,3 +281,74 @@ def _upload_into_postgres(sale, vivid_account):
     finally:
         conn.close()
     pass
+
+def _add_event_url_to_sale(sale):
+    try:
+        secrets = get_secret(f"{os.getenv('ENVIRONMENT')}/postgres/shadows-realtime-catalog-1-ro/dbadmin")
+        print(secrets)
+        conn = psycopg2.connect(
+            dbname=secrets['dbname'],
+            user=secrets['user'],
+            password=secrets['password'],
+            host=secrets['host'],
+            port=secrets['port']
+        )
+
+        location_id = sale["brokerTicketId"].split(";")[0]
+        print("location_id:", location_id)
+        sale["event_url"] = _get_event_url(
+            location_id,
+            conn,
+        )
+    except Exception as e:
+        print("Exception:", str(e))
+        traceback.print_exc()
+        sale["event_url"] = ""
+
+def _get_event_url(
+            location_id: str,
+            pg_connection,
+    ) -> str:
+        try:
+            event_code = _get_event_code(location_id, pg_connection)
+            print("event_code:", event_code)
+            if event_code:
+                shadows_table = DynamodbTable(
+                    dynamodb_resource,
+                    "shadows-catalog",
+                    automatically_append_env_to_table_name=True,
+                )
+                event_details = shadows_table.get_items_with_id_and_sub_id_prefix(
+                    f"ticketmaster_event#{event_code}",
+                    f"event_details", )
+                if event_details:
+                    return event_details[0].get("event_url", "")
+                else:
+                    print("Listing Not Found:")
+                    return ""
+            else:
+                print("Event Code Not Found:")
+            return ""
+        except Exception as e:
+            traceback.print_exc()
+            print(f"Error: {e}")
+            return ""
+
+def _get_event_code(location_id: str, pg_connection):
+        try:
+            if location_id:
+                query = """
+                        SELECT event_code
+                        FROM vivid_ticket_id_x_external_id
+                        WHERE location_id = %s
+                    """
+                with pg_connection.cursor() as cursor:
+                    cursor.execute(query, (location_id,))
+                    result = cursor.fetchone()
+                    return result[0] if result else None
+            else:
+                return ""
+        except Exception as e:
+            traceback.print_exc()
+            print(f"Error: {e}")
+            return ""

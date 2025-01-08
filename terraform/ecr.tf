@@ -26,6 +26,7 @@ resource "null_resource" "push_image" {
     # For Non-ARM (bitbucket,windows laptops): docker build \
     echo "Build the Docker Image"
     docker build \
+      --build-arg PIP_INDEX_URL \
       -t ${aws_ecr_repository.ecr_repository.repository_url}:${self.triggers.code_hash} \
       -t ${aws_ecr_repository.ecr_repository.repository_url}:latest \
       .
