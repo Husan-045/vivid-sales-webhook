@@ -258,7 +258,7 @@ def _upload_into_postgres(sale, vivid_account):
         str(uuid.uuid4()), sale.get('orderid'), sale.get('ticketid'), vivid_account, sale.get('section'),
         sale.get('row'), sale.get('notes'), sale.get('quantity'), sale.get('total'), sale.get('event'),
         sale.get('date'), str(datetime.datetime.utcnow()), sale.get('venue'), 'UNCONFIRMED', sale.get('electronic'),
-        sale.get('barCodesRequired'), sale.get('instantFlashSeats'), str(datetime.datetime.utcnow()))
+        sale.get('barCodesRequired'), sale.get('instantFlashSeats'), str(datetime.datetime.utcnow()), sale.get('event_url'))
     print("Uploading", sale)
     try:
         with conn.cursor() as cursor:
