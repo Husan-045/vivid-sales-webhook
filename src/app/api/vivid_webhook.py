@@ -285,7 +285,6 @@ def _add_event_url_to_sale(sale):
     conn = None
     try:
         secrets = get_secret(f"{os.getenv('ENVIRONMENT')}/postgres/shadows-realtime-catalog-1-ro/dbadmin")
-        print(secrets)
         conn = psycopg2.connect(
             dbname=secrets['dbname'],
             user=secrets['user'],
@@ -294,10 +293,10 @@ def _add_event_url_to_sale(sale):
             port=secrets['port']
         )
 
-        location_id = sale["brokerTicketId"].split(";")[0]
-        print("location_id:", location_id)
+        vivid_event_id = sale["productionId"]
+        print("productionId:", vivid_event_id)
         sale["event_url"] = _get_event_url(
-            location_id,
+            vivid_event_id,
             conn,
         )
     except Exception as e:
@@ -305,14 +304,15 @@ def _add_event_url_to_sale(sale):
         traceback.print_exc()
         sale["event_url"] = ""
     finally:
-        conn.close() if conn else ''
+        if conn:
+            conn.close()
 
 def _get_event_url(
-            location_id: str,
+            vivid_event_id: str,
             pg_connection,
     ) -> str:
         try:
-            event_code = _get_event_code(location_id, pg_connection)
+            event_code = _get_event_code(vivid_event_id, pg_connection)
             print("event_code:", event_code)
             if event_code:
                 shadows_table = DynamodbTable(
@@ -336,16 +336,17 @@ def _get_event_url(
             print(f"Error: {e}")
             return ""
 
-def _get_event_code(location_id: str, pg_connection):
+def _get_event_code(vivid_event_id: str, pg_connection):
         try:
-            if location_id:
+            if vivid_event_id:
                 query = """
                         SELECT event_code
                         FROM vivid_ticket_id_x_external_id
-                        WHERE location_id = %s
+                        WHERE vivid_event_id = %s
+                        LIMIT 1
                     """
                 with pg_connection.cursor() as cursor:
-                    cursor.execute(query, (location_id,))
+                    cursor.execute(query, (vivid_event_id,))
                     result = cursor.fetchone()
                     return result[0] if result else None
             else:
