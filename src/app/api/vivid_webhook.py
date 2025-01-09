@@ -293,10 +293,13 @@ def _add_event_url_to_sale(sale):
             port=secrets['port']
         )
 
-        vivid_event_id = sale["productionId"]
-        print("productionId:", vivid_event_id)
+        ticket_id = sale["ticketid"]
+        if not ticket_id:
+            raise ValueError("There is no productionId key in sale dictionary")
+
+        print("ticket_id:", ticket_id)
         sale["event_url"] = _get_event_url(
-            vivid_event_id,
+            ticket_id,
             conn,
         )
     except Exception as e:
@@ -308,11 +311,11 @@ def _add_event_url_to_sale(sale):
             conn.close()
 
 def _get_event_url(
-            vivid_event_id: str,
+            ticket_id: str,
             pg_connection,
     ) -> str:
         try:
-            event_code = _get_event_code(vivid_event_id, pg_connection)
+            event_code = _get_event_code(ticket_id, pg_connection)
             print("event_code:", event_code)
             if event_code:
                 shadows_table = DynamodbTable(
@@ -336,17 +339,17 @@ def _get_event_url(
             print(f"Error: {e}")
             return ""
 
-def _get_event_code(vivid_event_id: str, pg_connection):
+def _get_event_code(ticket_id: str, pg_connection):
         try:
-            if vivid_event_id:
+            if ticket_id:
                 query = """
                         SELECT event_code
                         FROM vivid_ticket_id_x_external_id
-                        WHERE vivid_event_id = %s
+                        WHERE vivid_ticket_id = %s
                         LIMIT 1
                     """
                 with pg_connection.cursor() as cursor:
-                    cursor.execute(query, (vivid_event_id,))
+                    cursor.execute(query, (ticket_id,))
                     result = cursor.fetchone()
                     return result[0] if result else None
             else:
