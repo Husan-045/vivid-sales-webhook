@@ -265,9 +265,9 @@ def _upload_into_postgres(sale, vivid_account):
             insert_query = """
                     INSERT INTO vivid_sales (
                         id, order_id, broker_ticket_id, vivid_account_id, section, "row", notes, quantity, cost, event,
-                        event_date, order_date, venue, status, electronic_delivery,  bar_codes_required,
+                        event_date, order_date, venue, status, electronic_delivery, bar_codes_required,
                         instant_flash_seats, collection_session_ts, event_url
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (order_id)
                     DO NOTHING
                 """
