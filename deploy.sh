@@ -50,6 +50,8 @@ export APP_IDENT="${APP_IDENT_WITHOUT_ENV}-${ENVIRONMENT}"
 # NOTE: This can often be the same as the APP_IDENT
 export TERRAFORM_STATE_IDENT=$APP_IDENT
 
+echo $BITBUCKET_STEP_OIDC_TOKEN > $(pwd)/web-identity-token
+
 source .env.terraform
 
 ####################################################################################################
