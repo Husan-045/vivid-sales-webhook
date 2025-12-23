@@ -22,18 +22,24 @@ resource "null_resource" "push_image" {
 
     echo "Running docker build: ${path.cwd}"
 
+    echo "Log into AWS ECR Container Repository"
+    aws ecr get-login-password \
+      --region ${data.aws_region.current.name} | \
+      docker login \
+        --username AWS \
+        --password-stdin ${aws_ecr_repository.ecr_repository.repository_url}
+
     # For ARM Mac: docker buildx build --platform linux/amd64 \
-    # For Non-ARM (bitbucket,windows laptops): docker build \
+    # For Non-ARM (github,windows laptops): docker build \
     echo "Build the Docker Image"
-    docker build \
+    docker buildx build --platform linux/arm64 --provenance=false \
+      --no-cache \
+      --push \
       --build-arg PIP_INDEX_URL \
       -t ${aws_ecr_repository.ecr_repository.repository_url}:${self.triggers.code_hash} \
       -t ${aws_ecr_repository.ecr_repository.repository_url}:latest \
       .
 
-    echo "Push Docker Image to AWS ECR Container Repository"
-    docker push ${aws_ecr_repository.ecr_repository.repository_url}:${self.triggers.code_hash}
-    docker push ${aws_ecr_repository.ecr_repository.repository_url}:latest
     sleep 10
     EOF
   }

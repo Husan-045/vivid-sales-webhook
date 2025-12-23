@@ -28,6 +28,7 @@ resource "aws_lambda_function" "lambda_function" {
   image_uri     = "${aws_ecr_repository.ecr_repository.repository_url}:${null_resource.push_image.triggers.code_hash}"
   timeout       = var.app_timeout
   memory_size   = var.app_memory
+  architectures = ["arm64"]
   publish       = true
 
   vpc_config {
